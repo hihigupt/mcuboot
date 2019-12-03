@@ -208,7 +208,7 @@ int
 bootutil_img_validate(struct enc_key_data *enc_state, int image_index,
                       struct image_header *hdr, const struct flash_area *fap,
                       uint8_t *tmp_buf, uint32_t tmp_buf_sz, uint8_t *seed,
-                      int seed_len, uint8_t *out_hash)
+                      int seed_len, uint8_t *out_hash, int *out_key_id)
 {
     uint32_t off;
     uint16_t len;
@@ -231,6 +231,11 @@ bootutil_img_validate(struct enc_key_data *enc_state, int image_index,
 
     if (out_hash) {
         memcpy(out_hash, hash, 32);
+    }
+
+    /* By default invalid key id is return */
+    if (out_key_id) {
+        *out_key_id = -1;
     }
 
     rc = bootutil_tlv_iter_begin(&it, hdr, fap, IMAGE_TLV_ANY, false);
@@ -300,6 +305,9 @@ bootutil_img_validate(struct enc_key_data *enc_state, int image_index,
             rc = bootutil_verify_sig(hash, sizeof(hash), buf, len, key_id);
             if (rc == 0) {
                 valid_signature = 1;
+                if (out_key_id) {
+                    *out_key_id = key_id;
+                }
             }
             key_id = -1;
 #endif

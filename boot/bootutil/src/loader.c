@@ -807,7 +807,7 @@ boot_image_check(struct boot_loader_state *state, struct image_header *hdr,
 #endif
 
     if (bootutil_img_validate(BOOT_CURR_ENC(state), image_index, hdr, fap, tmpbuf,
-                              BOOT_TMPBUF_SZ, NULL, 0, NULL)) {
+                              BOOT_TMPBUF_SZ, NULL, 0, NULL, NULL)) {
         return BOOT_EBADIMAGE;
     }
 
@@ -831,12 +831,12 @@ split_image_check(struct image_header *app_hdr,
     }
 
     if (bootutil_img_validate(NULL, 0, loader_hdr, loader_fap, tmpbuf,
-                              BOOT_TMPBUF_SZ, NULL, 0, loader_hash)) {
+                              BOOT_TMPBUF_SZ, NULL, 0, loader_hash, NULL)) {
         return BOOT_EBADIMAGE;
     }
 
     if (bootutil_img_validate(NULL, 0, app_hdr, app_fap, tmpbuf,
-                              BOOT_TMPBUF_SZ, loader_hash, 32, NULL)) {
+                              BOOT_TMPBUF_SZ, loader_hash, 32, NULL, NULL)) {
         return BOOT_EBADIMAGE;
     }
 
