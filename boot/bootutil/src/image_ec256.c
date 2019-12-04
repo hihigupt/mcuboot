@@ -34,6 +34,13 @@
 #include "cc310_glue.h"
 #define NUM_ECC_BYTES (4*8)
 #endif
+#ifdef MCUBOOT_USE_RIOTCRYPT
+#include "RiotTarget.h"
+#include "RiotStatus.h"
+#include "RiotEcc.h"
+#include "RiotCrypt.h"
+#define NUM_ECC_BYTES (4*8)
+#endif
 #include "bootutil_priv.h"
 
 /*
@@ -227,4 +234,58 @@ bootutil_verify_sig(uint8_t *hash,
     return rc;
 }
 #endif /* MCUBOOT_USE_CC310 */
+#ifdef MCUBOOT_USE_RIOTCRYPT
+int
+bootutil_verify_sig(uint8_t *hash,
+                    uint32_t hlen,
+                    uint8_t *sig,
+                    size_t slen,
+                    uint8_t key_id)
+{
+    int rc;
+    uint8_t *key;
+    uint8_t *end;
+    ECDSA_sig_t signature;
+    uint8_t binary[2 * NUM_ECC_BYTES] = { 0 };
+    RIOT_ECC_PUBLIC pubKey;
+
+    key = (uint8_t *)bootutil_keys[key_id].key;
+    end = key + *bootutil_keys[key_id].len;
+
+    rc = bootutil_import_key(&key, end);
+    if (rc) {
+        return -1;
+    }
+
+    key--;
+    rc = RiotCrypt_ImportEccPub(key, end - key, &pubKey);
+    if(rc) {
+        return -1;
+    }
+
+    /* Decode signature */
+    rc = bootutil_decode_sig(binary, sig, sig + slen);
+    if (rc) {
+        return -1;
+    }
+
+    BigIntToBigVal(&signature.r, binary, NUM_ECC_BYTES);
+    BigIntToBigVal(&signature.s, binary + NUM_ECC_BYTES, NUM_ECC_BYTES);
+
+    /*
+     * This is simplified, as the hash length is also 32 bytes.
+     */
+    if (hlen != NUM_ECC_BYTES) {
+        return -1;
+    }
+
+    /* Initialize and verify in one go */
+    rc = RIOT_DSAVerifyDigest(hash, &signature, &pubKey);
+    if (rc != 0) {
+        return -2;
+    }
+
+    return rc;
+}
+#endif /* MCUBOOT_USE_RIOTCRYPT */
 #endif /* MCUBOOT_SIGN_EC256 */

@@ -33,7 +33,8 @@
 
 #if (defined(MCUBOOT_USE_MBED_TLS) + \
      defined(MCUBOOT_USE_TINYCRYPT) + \
-     defined(MCUBOOT_USE_CC310)) != 1
+     defined(MCUBOOT_USE_CC310) + \
+     defined(MCUBOOT_USE_RIOTCRYPT)) != 1
     #error "One crypto backend must be defined either CC310, MBED_TLS or TINYCRYPT"
 #endif
 
@@ -48,6 +49,11 @@
 #ifdef MCUBOOT_USE_CC310
     #include <cc310_glue.h>
 #endif /* MCUBOOT_USE_CC310 */
+
+#ifdef MCUBOOT_USE_RIOTCRYPT
+    #include <RiotTarget.h>
+    #include <RiotSha256.h>
+#endif /* MCUBOOT_USE_RIOTCRYPT */
 
 #include <stdint.h>
 
@@ -118,6 +124,27 @@ static inline void bootutil_sha256_finish(bootutil_sha256_context *ctx,
     cc310_sha256_finalize(ctx, output);
 }
 #endif /* MCUBOOT_USE_CC310 */
+
+#ifdef MCUBOOT_USE_RIOTCRYPT
+typedef RIOT_SHA256_CONTEXT bootutil_sha256_context;
+static inline void bootutil_sha256_init(bootutil_sha256_context *ctx)
+{
+    RIOT_SHA256_Init(ctx);
+}
+
+static inline void bootutil_sha256_update(bootutil_sha256_context *ctx,
+                                          const void *data,
+                                          uint32_t data_len)
+{
+    RIOT_SHA256_Update(ctx, data, data_len);
+}
+
+static inline void bootutil_sha256_finish(bootutil_sha256_context *ctx,
+                                          uint8_t *output)
+{
+    RIOT_SHA256_Final(ctx, output);
+}
+#endif /* MCUBOOT_USE_RIOTCRYPT */
 
 #ifdef __cplusplus
 }
